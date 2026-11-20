@@ -26,7 +26,7 @@ For trainers and program managers.
 
 - **Learner table:** each learner's track, attendance, participation and assessment score.
 - **Cards:** Count of Labs, Average Labs Completed, Total Hours in Class, Average Attendance Rate, Average Participation Rate, Average Assessment Score.
-- **Slicers:** Cohort, Track, Month, Week, Learner Status.
+- **Slicers:** Cohort, Track, Month, Week, Learner Status, Program Status (Ongoing / Completed).
 
 ![Page 2](screenshots/05_page2_learner_insights.png)
 
@@ -55,7 +55,7 @@ The raw data files are not included in this repository.
 - Unpivoted the weekly lab and quiz scores and turned "Week 1" into the number 1.
 - Split each day's participant list into one row per learner.
 - Appended the Power BI and AWS Cloud versions of each table into one table (`Attendance`, `Labs`, `Quizzes`, `Participation`, `Status`).
-- Built a `Learners` table (one row per learner) to connect everything, with a `Cohort` column (`Cohort 1`) so more cohorts can be added later.
+- Built a `Learners` table (one row per learner) to connect everything, with a `Cohort` column (`Cohort 1`) so more cohorts can be added later, and a `Program Status` column.
 - Added a `Certification Type` column to `Status` (AWS or Power BI, following the learner's track).
 
 ## Data model
@@ -72,7 +72,13 @@ The full list of relationships and every DAX measure is in [docs/dax_measures.md
 - A **dropout** meets all three conditions at once: Non Graduate, Not Certified, and incomplete attendance. **Incomplete attendance** means attendance below 100% over the whole program (at least one class day missed under the 30-minute rule). This gives 7 dropouts, all in AWS Cloud.
 - **Certification Type** is AWS or Power BI, following the learner's track.
 - A **lab counts as completed** when its score is above 0.
-- The brief's *Program Status* slicer is skipped because the data has no such column and all learners finished the 10 weeks.
+- **Program Status** is derived, because the data has no such column: a learner is `Completed` once they have attendance through the last class day (11 Oct 2024), otherwise `Ongoing`. All 140 learners show as Completed.
+
+## Known limitations
+
+- With this data, the "incomplete attendance" condition of the dropout rule separates AWS Cloud from Power BI: every Power BI learner attended all 50 days, and every AWS Cloud learner missed at least one. The rule still follows the supervisor's three conditions and gives 7 dropouts.
+- The `Weeks` table starts on 5 Aug 2024. A future cohort with different dates would need its own start date (for example a start-date column on `Learners`).
+- Participation records contain names only, so `Participation` joins to `Learners` by name. This works because no learner names repeat.
 
 ## Headline numbers (all learners)
 
