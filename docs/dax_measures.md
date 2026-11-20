@@ -4,10 +4,11 @@ All measures live in the `Measures (2)` table. Calculated columns and the `Weeks
 
 ## Assumptions
 
-- **Dropout** = a learner whose Graduation Status is `Non Graduate`. The data has no separate dropout column.
+- **Dropout** (per the supervisor) = a learner who meets **all three** conditions at once: Graduation Status is `Non Graduate`, Certification Status is `Not Certified`, and attendance is incomplete. **Incomplete attendance** is taken as attendance below 100% over the whole program (the learner missed at least one class day under the 30-minute rule).
 - **Completed lab** = a lab with a score above 0 (a score of 0 means nothing was submitted).
 - **Attended** = the learner stayed **more than 30 minutes** in the Zoom session (`DurationMinutes > 30`), as required by the brief.
-- **Cohort** = each track (Power BI, AWS Cloud) is treated as its own cohort, as the data has no cohort column.
+- **Cohort** = the dataset is a **single cohort** (`Cohort 1`) with two tracks (Power BI and AWS Cloud). A `Cohort` column on the `Learners` table and Cohort slicers let the dashboard handle more cohorts later.
+- **Certification Type** = `AWS` for AWS Cloud learners and `Power BI` for Power BI learners.
 
 ## Learner counts and rates
 
@@ -31,8 +32,17 @@ CALCULATE ( COUNTROWS ( 'Status' ), 'Status'[Certification Status] = "Certified"
 
 ```dax
 Total Dropouts =
-// Learners who did not graduate are counted as dropouts.
-CALCULATE ( COUNTROWS ( 'Status' ), 'Status'[Graduation Status] = "Non Graduate" )
+// A dropout must meet ALL THREE conditions at the same time:
+//   1) Non Graduate  2) Not Certified  3) incomplete attendance (below 100%).
+COUNTROWS (
+    FILTER (
+        Learners,
+        RELATED ( 'Status'[Graduation Status] ) = "Non Graduate"
+            && RELATED ( 'Status'[Certification Status] ) = "Not Certified"
+            // Attendance is judged over the whole program, so the Week/Month slicers don't change who is a dropout.
+            && CALCULATE ( [Attendance %], REMOVEFILTERS ( Weeks ) ) < 1
+    )
+)
 ```
 
 ```dax
@@ -157,6 +167,15 @@ INT ( ( Participation[Date] - DATE ( 2024, 8, 5 ) ) / 7 ) + 1
 ```
 
 In the model both calculated columns are named `Week`.
+
+```dax
+Certification Type =
+// Calculated column on the Status table.
+// The certification a learner works toward follows their track: AWS Cloud learners -> AWS, Power BI learners -> Power BI.
+IF ( 'Status'[Track] = "AWS Cloud", "AWS", "Power BI" )
+```
+
+`Learners[Cohort]` is a column added in Power Query with the value `"Cohort 1"` for every learner.
 
 ## Relationships
 
